@@ -109,7 +109,7 @@ ax[0,0].set_xlabel('State')
 
 ax[0,0].set_ylabel('Cases per 100K')
 
-#Bar chart of total deaths by state
+# Bar chart of total deaths by state
 state_deaths.plot(kind='bar', ax=ax[0,1])
 
 ax[0,1].set_title('Total COVID-19 Deaths per 100K by State')
@@ -118,7 +118,7 @@ ax[0,1].set_xlabel('State')
 
 ax[0,1].set_ylabel('Deaths per 100K')
 
-#Bar chart of total hospitalizations by state
+# Bar chart of total hospitalizations by state
 state_hosp.plot(kind='bar', ax=ax[1,0])
 
 ax[1,0].set_title('Total COVID-19 Hospitalizations per 100K by State')
@@ -127,7 +127,7 @@ ax[1,0].set_xlabel('State')
 
 ax[1,0].set_ylabel('Hospitalizations per 100K')
 
-#Scatter plot of mean deaths per 100K vs mean cases per 100K with linear regression line
+# Scatter plot of mean deaths per 100K vs mean cases per 100K with linear regression line
 ax[1,1].scatter(df_agg['Mean_Cases_Per_100K'], df_agg['Mean_Deaths_Per_100K'])
 
 ax[1,1].plot(X, model.predict(X), color='red')
