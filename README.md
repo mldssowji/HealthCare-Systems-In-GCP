@@ -42,50 +42,76 @@ Finally, the goal of this project is to create a real-time serving system that g
 
 The following is the code i used to to the project
 import pandas as pd
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import train_test_split
-from flask import Flask, request, jsonify
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
 
+# Data Ingestion
+url = 'https://data.cms.gov/provider-data/dataset/avax-cv19'
+df = pd.read_csv(url)
 
-# Load the patient records dataset
-df = pd.read_csv("https://data.cms.gov/provider-data/dataset/avax-cv19")
+# Data Cleaning
+df = df.dropna()  # Drop rows with missing values
+df = df[df['State'] != 'XX']  # Drop rows with invalid state codes
 
-# Remove any rows with missing data
-df = df.dropna()
+# Data Transformation
+df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d')  # Convert date column to datetime format
+df['Cases_Per_100K'] = df['Total Cases'] / df['Population'] * 100000  # Calculate cases per 100K population
+df['Deaths_Per_100K'] = df['Total Deaths'] / df['Population'] * 100000  # Calculate deaths per 100K population
+df['Hospitalizations_Per_100K'] = df['Total Hospitalizations'] / df['Population'] * 100000  # Calculate hospitalizations per 100K population
 
-# Convert categorical features to numerical features
-df = pd.get_dummies(df, columns=["gender", "race"])
+# Analysis
+state_cases = df.groupby('State')['Cases_Per_100K'].sum()  # Group data by state and calculate total cases
+state_deaths = df.groupby('State')['Deaths_Per_100K'].sum()  # Group data by state and calculate total deaths
+state_hosp = df.groupby('State')['Hospitalizations_Per_100K'].sum()  # Group data by state and calculate total hospitalizations
 
-# Normalize the data
-from sklearn.preprocessing import MinMaxScaler
+# Create a new dataframe with the aggregated data
+df_agg = pd.DataFrame({'Cases_Per_100K': state_cases, 'Deaths_Per_100K': state_deaths, 
+                       'Hospitalizations_Per_100K': state_hosp})
 
-scaler = MinMaxScaler()
-df = scaler.fit_transform(df)
+# Add a column for population
+pop_df = df.groupby('State')['Population'].max().reset_index()
+df_agg = pd.merge(df_agg, pop_df, on='State')
 
+# Calculate mean cases, deaths, and hospitalizations per 100K population
+df_agg['Mean_Cases_Per_100K'] = df_agg['Cases_Per_100K'] / df_agg['Population'] * 100000
+df_agg['Mean_Deaths_Per_100K'] = df_agg['Deaths_Per_100K'] / df_agg['Population'] * 100000
+df_agg['Mean_Hospitalizations_Per_100K'] = df_agg['Hospitalizations_Per_100K'] / df_agg['Population'] * 100000
 
+# Linear Regression Analysis
+X = df_agg['Mean_Cases_Per_100K'].values.reshape(-1, 1)
+y = df_agg['Mean_Deaths_Per_100K'].values.reshape(-1, 1)
+model = LinearRegression().fit(X, y)
+r_sq = model.score(X, y)
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(df.drop("outcome", axis=1), df["outcome"], test_size=0.2, random_state=42)
+# Visualization
+fig, ax = plt.subplots(2, 2, figsize=(15, 10))
 
-# Create a decision tree classifier
-clf = DecisionTreeClassifier()
+# Bar chart of total cases by state
+state_cases.plot(kind='bar', ax=ax[0,0])
+ax[0,0].set_title('Total COVID-19 Cases per 100K by State')
+ax[0,0].set_xlabel('State')
+ax[0,0].set_ylabel('Cases per 100K')
 
-# Train the classifier on the training data
-clf.fit(X_train, y_train)
+#Bar chart of total deaths by state
+state_deaths.plot(kind='bar', ax=ax[0,1])
+ax[0,1].set_title('Total COVID-19 Deaths per 100K by State')
+ax[0,1].set_xlabel('State')
+ax[0,1].set_ylabel('Deaths per 100K')
 
-# Test the classifier on the testing data
-y_pred = clf.predict(X_test)
+#Bar chart of total hospitalizations by state
+state_hosp.plot(kind='bar', ax=ax[1,0])
+ax[1,0].set_title('Total COVID-19 Hospitalizations per 100K by State')
+ax[1,0].set_xlabel('State')
+ax[1,0].set_ylabel('Hospitalizations per 100K')
 
-app = Flask(__name__)
+#Scatter plot of mean deaths per 100K vs mean cases per 100K with linear regression line
+ax[1,1].scatter(df_agg['Mean_Cases_Per_100K'], df_agg['Mean_Deaths_Per_100K'])
+ax[1,1].plot(X, model.predict(X), color='red')
+ax[1,1].set_title('Mean COVID-19 Deaths vs Mean Cases per 100K by State')
+ax[1,1].set_xlabel('Mean Cases per 100K')
+ax[1,1].set_ylabel('Mean Deaths per 100K')
+ax[1,1].text(0.05, 0.9, f'R-squared = {r_sq:.2f}', transform=ax[1,1].transAxes)
 
-# Define the prediction endpoint
-@app.route('/predict', methods=['POST'])
-def predict():
-    data = request.get_json(force=True)
-    data = scaler.transform([data])
-    prediction = clf.predict(data)[0]
-    return jsonify({'prediction': int(prediction)})
-
-# Start the Flask app
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+plt.tight_layout()
+plt.show()
