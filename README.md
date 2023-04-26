@@ -56,8 +56,11 @@ df = df[df['State'] != 'XX']  # Drop rows with invalid state codes
 
 # Data Transformation
 df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d')  # Convert date column to datetime format
+
 df['Cases_Per_100K'] = df['Total Cases'] / df['Population'] * 100000  # Calculate cases per 100K population
+
 df['Deaths_Per_100K'] = df['Total Deaths'] / df['Population'] * 100000  # Calculate deaths per 100K population
+
 df['Hospitalizations_Per_100K'] = df['Total Hospitalizations'] / df['Population'] * 100000  # Calculate hospitalizations per 100K population
 
 # Analysis
