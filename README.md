@@ -143,3 +143,6 @@ ax[1,1].text(0.05, 0.9, f'R-squared = {r_sq:.2f}', transform=ax[1,1].transAxes)
 plt.tight_layout()
 
 plt.show()
+
+
+# Thank You
