@@ -48,10 +48,12 @@ from sklearn.linear_model import LinearRegression
 
 # Data Ingestion
 url = 'https://data.cms.gov/provider-data/dataset/avax-cv19'
+
 df = pd.read_csv(url)
 
 # Data Cleaning
 df = df.dropna()  # Drop rows with missing values
+
 df = df[df['State'] != 'XX']  # Drop rows with invalid state codes
 
 # Data Transformation
@@ -65,7 +67,9 @@ df['Hospitalizations_Per_100K'] = df['Total Hospitalizations'] / df['Population'
 
 # Analysis
 state_cases = df.groupby('State')['Cases_Per_100K'].sum()  # Group data by state and calculate total cases
+
 state_deaths = df.groupby('State')['Deaths_Per_100K'].sum()  # Group data by state and calculate total deaths
+
 state_hosp = df.groupby('State')['Hospitalizations_Per_100K'].sum()  # Group data by state and calculate total hospitalizations
 
 # Create a new dataframe with the aggregated data
@@ -74,17 +78,23 @@ df_agg = pd.DataFrame({'Cases_Per_100K': state_cases, 'Deaths_Per_100K': state_d
 
 # Add a column for population
 pop_df = df.groupby('State')['Population'].max().reset_index()
+
 df_agg = pd.merge(df_agg, pop_df, on='State')
 
 # Calculate mean cases, deaths, and hospitalizations per 100K population
 df_agg['Mean_Cases_Per_100K'] = df_agg['Cases_Per_100K'] / df_agg['Population'] * 100000
+
 df_agg['Mean_Deaths_Per_100K'] = df_agg['Deaths_Per_100K'] / df_agg['Population'] * 100000
+
 df_agg['Mean_Hospitalizations_Per_100K'] = df_agg['Hospitalizations_Per_100K'] / df_agg['Population'] * 100000
 
 # Linear Regression Analysis
 X = df_agg['Mean_Cases_Per_100K'].values.reshape(-1, 1)
+
 y = df_agg['Mean_Deaths_Per_100K'].values.reshape(-1, 1)
+
 model = LinearRegression().fit(X, y)
+
 r_sq = model.score(X, y)
 
 # Visualization
@@ -92,29 +102,44 @@ fig, ax = plt.subplots(2, 2, figsize=(15, 10))
 
 # Bar chart of total cases by state
 state_cases.plot(kind='bar', ax=ax[0,0])
+
 ax[0,0].set_title('Total COVID-19 Cases per 100K by State')
+
 ax[0,0].set_xlabel('State')
+
 ax[0,0].set_ylabel('Cases per 100K')
 
 #Bar chart of total deaths by state
 state_deaths.plot(kind='bar', ax=ax[0,1])
+
 ax[0,1].set_title('Total COVID-19 Deaths per 100K by State')
+
 ax[0,1].set_xlabel('State')
+
 ax[0,1].set_ylabel('Deaths per 100K')
 
 #Bar chart of total hospitalizations by state
 state_hosp.plot(kind='bar', ax=ax[1,0])
+
 ax[1,0].set_title('Total COVID-19 Hospitalizations per 100K by State')
+
 ax[1,0].set_xlabel('State')
+
 ax[1,0].set_ylabel('Hospitalizations per 100K')
 
 #Scatter plot of mean deaths per 100K vs mean cases per 100K with linear regression line
 ax[1,1].scatter(df_agg['Mean_Cases_Per_100K'], df_agg['Mean_Deaths_Per_100K'])
+
 ax[1,1].plot(X, model.predict(X), color='red')
+
 ax[1,1].set_title('Mean COVID-19 Deaths vs Mean Cases per 100K by State')
+
 ax[1,1].set_xlabel('Mean Cases per 100K')
+
 ax[1,1].set_ylabel('Mean Deaths per 100K')
+
 ax[1,1].text(0.05, 0.9, f'R-squared = {r_sq:.2f}', transform=ax[1,1].transAxes)
 
 plt.tight_layout()
+
 plt.show()
